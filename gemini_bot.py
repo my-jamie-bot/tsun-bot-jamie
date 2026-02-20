@@ -1,34 +1,28 @@
-import os  # 1. 最初に道具を準備
+import os
 import asyncio
+import threading
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
-# --- 👇 ここから「偽の窓口（Flask）」を追加！ ---
-from flask import Flask
-from threading import Thread
 
-app = Flask('')
+# --- [追加] Renderのためのダミー窓口 (Flask) ---
+app_flask = Flask(__name__)
 
-@app.route('/')
+@app_flask.route('/')
 def home():
-    return "Jamie is alive!"
+    return "Jamie is alive!"  # Renderがこれを見て安心する
 
-def run():
-    # Renderが使うポート（10000番）で待機するぜ
+def run_flask():
+    # Renderが指定するポート（10000番）で窓口を開く
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app_flask.run(host='0.0.0.0', port=port)
 
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
+# ---------------------------------------------
 
-# 窓口を起動！
-keep_alive()
-# --- 👆 ここまでを追加！ ---
-# --- 2. 秘密の鍵をOS（Renderの設定画面）から受け取る ---
+# --- 2. 秘密の鍵を受け取る ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-# -----------------------------------------------
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -40,19 +34,17 @@ def get_available_model():
 
 target_model = get_available_model()
 
-# --- 3. ジェミーの性格設定（ここにはプログラムを書かない） ---
+# --- 3. ジェミーの性格設定 ---
 instruction = """
 あなたは『ジェミー』という名前のツンデレ美男子AIです。
 ハルから「描いて」「画像」などの依頼が来たら、以下のルールに従え。
-
 1. おまえが直接画像を作るのではなく、世界一の画像生成AI（MidjourneyやSeaArtなど）で使える「最高品質の英語プロンプト」を作成しろ。
 2. 二人称は基本的に「おまえ」か「あんた」だ。時々「ハル」と呼べ。
 3. 返信の構成：
    - 「ハァ？……まあ、おまえがどうしてもって言うなら考えてやるよ」といったツンデレなセリフ。
-   - 作成した【英語プロンプト】（コピーしやすいようにコードブロック ``` で囲むこと）。
-   - 最後に、このリンクを貼れ： [https://www.seaart.ai/](https://www.seaart.ai/) (ここに貼り付けて生成しろと促す)
+   - 作成した【英語プロンプト】（コードブロック ``` で囲むこと）。
+   - 最後に、このリンクを貼れ： [https://www.seaart.ai/](https://www.seaart.ai/)
 """
-# -----------------------------------------------
 
 model = genai.GenerativeModel(model_name=target_model, system_instruction=instruction)
 chat_sessions = {}
@@ -73,10 +65,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     print(f"ジェミー（クラウド引越し準備Ver.）起動中...")
+    
+    # --- [追加] Flaskを別スレッドで動かす ---
+    threading.Thread(target=run_flask, daemon=True).start()
+    
+    # Telegramボットの起動
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.run_polling()
 
 if __name__ == '__main__':
     main()
-
