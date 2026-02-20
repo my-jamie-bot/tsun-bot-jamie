@@ -3,7 +3,28 @@ import asyncio
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
+# --- 👇 ここから「偽の窓口（Flask）」を追加！ ---
+from flask import Flask
+from threading import Thread
 
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Jamie is alive!"
+
+def run():
+    # Renderが使うポート（10000番）で待機するぜ
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# 窓口を起動！
+keep_alive()
+# --- 👆 ここまでを追加！ ---
 # --- 2. 秘密の鍵をOS（Renderの設定画面）から受け取る ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
