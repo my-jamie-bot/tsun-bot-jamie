@@ -75,4 +75,8 @@ def main():
     app.run_polling()
 
 if __name__ == '__main__':
+    # PYTHONUNBUFFEREDと同じ効果をコードで強制する
+    import sys
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
     main()
