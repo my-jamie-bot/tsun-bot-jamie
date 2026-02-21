@@ -71,7 +71,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"エラーだけど...: {e}")
 
 def main():
-    print(f"ジェミー（クラウド引越し準備Ver.）起動中...")
+    # --- [修正] ログをリアルタイムで表示する設定 ---
+    import sys
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+    
+    print(f"ジェミー（1.5-Flash固定版）起動中...")
     
     # --- [追加] Flaskを別スレッドで動かす ---
     threading.Thread(target=run_flask, daemon=True).start()
@@ -80,6 +85,7 @@ def main():
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.run_polling()
+
 
 if __name__ == '__main__':
     # PYTHONUNBUFFEREDと同じ効果をコードで強制する
