@@ -33,7 +33,8 @@ def get_available_model():
     return "gemini-1.5-flash"
 
 # 'models/' を付けて指定するのが一番確実だぜ！
-target_model = "models/gemini-1.5-flash"
+target_model = "gemini-1.5-flash"
+
 
 
 
