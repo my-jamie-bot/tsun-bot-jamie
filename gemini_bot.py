@@ -73,19 +73,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"エラーだけど...: {e}")
 
 def main():
-    # --- [修正] ログをリアルタイムで表示する設定 ---
-    import sys
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+    # 複雑な設定は抜きにして、シンプルに起動！
+    print("ジェミー（1.5-Flash固定版）起動中...")
     
-    print(f"ジェミー（1.5-Flash固定版）起動中...")
-    
-    # --- [追加] Flaskを別スレッドで動かす ---
+    # Flaskを別スレッドで動かす
     threading.Thread(target=run_flask, daemon=True).start()
     
     # Telegramボットの起動
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    print("ボットのポーリングを開始します...")
     app.run_polling()
 
 
