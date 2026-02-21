@@ -76,8 +76,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"エラーだけど...: {e}")
 
 def main():
-    # 複雑な設定は抜きにして、シンプルに起動！
-    print("ジェミー（1.5-Flash固定版）起動中...")
+    # ログのバッファを解除してリアルタイム表示にする
+    import sys
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+
+    print(f"ジェミー（1.5-Flash安定版）起動中...")
+    print(f"使用モデル: {target_model}")
     
     # Flaskを別スレッドで動かす
     threading.Thread(target=run_flask, daemon=True).start()
@@ -89,10 +94,5 @@ def main():
     print("ボットのポーリングを開始します...")
     app.run_polling()
 
-
 if __name__ == '__main__':
-    # PYTHONUNBUFFEREDと同じ効果をコードで強制する
-    import sys
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
     main()
