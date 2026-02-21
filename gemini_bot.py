@@ -32,7 +32,9 @@ def get_available_model():
             return m.name
     return "gemini-1.5-flash"
 
-target_model = get_available_model()
+# 難しい自動検索はやめて、一番たくさん喋れる1.5に固定するぜ！
+target_model = "gemini-1.5-flash"
+
 
 # --- 3. ジェミーの性格設定 ---
 instruction = """
