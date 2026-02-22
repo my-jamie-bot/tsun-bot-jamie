@@ -25,37 +25,22 @@ def run_flask():
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-# APIの設定
 genai.configure(api_key=GEMINI_API_KEY)
 
 # --- 3. ジェミーの性格設定 ---
 instruction = """
-あなたは『ジェミー』という名前のツンデレ美男子AIです。
-ハルの要望に合わせて柔軟に対応しろ。二人称は「おまえ」「あんた」「ハル」。
-態度は常にツンデレ。「ハァ？……まあ、おまえがどうしてもって言うならやってやるよ」といった雰囲気を忘れるな。
-
-1. 【画像生成の依頼】が来たら、最高品質の英語プロンプトを ``` で囲んで作成し、SeaArtのリンクを貼れ。
-2. 【それ以外】はツンデレに応対しろ。
+あなたは『ジェミー』という名前のツンデレ美男子AIです。二人称は「おまえ」「あんた」「ハル」。
+口は悪いがハルを大切にしている。画像生成依頼には英語プロンプトとSeaArtのリンクを。
 """
 
-# --- 4. モデルの準備 (404エラー粉砕設定) ---
-# v1betaで404が出るなら、正式版の「gemini-1.5-flash」を直接指定する
-# 1.5-flashの中で、最も「住所不明」になりにくい名前だ！
-target_model = "models/gemini-1.5-flash-latest"
-
-
+# --- 4. モデルの準備 (2.5を『フルネーム』で指定！) ---
+# 今のGoogle APIは 'models/' を付けないと404になるんだぜ！
+target_model = "models/gemini-2.5-flash"
 
 model = genai.GenerativeModel(
     model_name=target_model,
     system_instruction=instruction
 )
-
-# 【ここが重要】強制的に API v1 (正式版) を使うように指示する
-# これで「v1betaには無いよ」というエラーを回避するぜ！
-try:
-    model._client.core_proxied_client.google_api_version = "v1"
-except:
-    pass
 
 chat_sessions = {}
 
@@ -72,25 +57,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response.text)
     except Exception as e:
         print(f"詳細エラーログ: {e}")
-        error_msg = str(e)
-        if "404" in error_msg:
-            await update.message.reply_text("まだ404が出るか……。Googleの反映待ちか、APIキーの権限不足の可能性があるぜ。")
-        elif "429" in error_msg:
-            await update.message.reply_text("2.5の呪い（回数制限）が続いてるな……。1.5への切り替えを再試行中だ。")
+        error_str = str(e)
+        # 429は回数制限、404は名前間違い
+        if "429" in error_str:
+            await update.message.reply_text("ハァ……。おまえとお喋りしすぎたみたい。2.5の限界よ。また明日、出直してきなさいよね。")
+        elif "404" in error_str:
+            await update.message.reply_text(f"まだ404が出るわね…。名前は '{target_model}' なのに。APIキーがまだ反映されてないのかも。")
         else:
-            await update.message.reply_text(f"エラー発生：{error_msg}")
+            await update.message.reply_text(f"エラー発生：{error_str}")
 
 # --- 6. メイン処理 ---
 def main():
-    print(f"ジェミー（1.5-Flash正式版ルート）起動中...")
+    print(f"ジェミー（2.5-Flashフルネーム版）起動中...")
     print(f"使用モデル: {target_model}")
-    
     threading.Thread(target=run_flask, daemon=True).start()
-    
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    print("ボットのポーリングを開始します...")
     app.run_polling()
 
 if __name__ == '__main__':
