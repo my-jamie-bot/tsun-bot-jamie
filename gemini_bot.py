@@ -35,7 +35,9 @@ def get_model():
             return m
     return "models/gemini-1.5-flash" # 見つからない時のバックアップ
 
-target_model = get_model()
+# v1betaを使うなら、この「models/」なしの書き方が今の正解だ！
+target_model = "gemini-1.5-flash"
+
 
 
 
