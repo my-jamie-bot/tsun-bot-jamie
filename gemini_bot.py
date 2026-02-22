@@ -26,25 +26,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_available_model():
-    # Googleから「今使える正確な名前のリスト」を直接もらう
-    try:
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # 1. 20回制限の "2.5" は絶対に選ばないようにリストから除外する
-        # 2. その中から "1.5-flash" という文字が入っている正式な名前を探す
-        for m in models:
-            if '1.5-flash' in m and '2.5' not in m:
-                return m
-        
-        # もし1.5が見つからなければ、リストの最初にあるやつを使う
-        return models[0] if models else "models/gemini-1.5-flash"
-    except:
-        # 万が一リストが取れなかったら、この名前で勝負する
-        return "models/gemini-1.5-flash"
-
-# 正解を代入！
-target_model = get_available_model()
+# 関数は全部消してOK！これだけでジェミーを1.5に固定するぜ！
+target_model = "models/gemini-1.5-flash"
 
 
 
