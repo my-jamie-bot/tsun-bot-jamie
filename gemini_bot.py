@@ -26,9 +26,16 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# 'models/' を取って、'-latest' をつける。これが v1beta で 1.5-flash を呼ぶ正解だぜ！
-target_model = "gemini-1.5-flash-latest"
+# Googleから今使えるモデルのリストを直接取得して、1.5-flashを探すぜ
+def get_model():
+    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    for m in models:
+        # 1.5-flash が含まれていて、かつ制限の厳しい 2.5 じゃないものを探す
+        if '1.5-flash' in m and '2.5' not in m:
+            return m
+    return "models/gemini-1.5-flash" # 見つからない時のバックアップ
 
+target_model = get_model()
 
 
 
