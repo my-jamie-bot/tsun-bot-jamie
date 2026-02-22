@@ -24,16 +24,15 @@ def run_flask():
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
+# 1. APIの設定（バージョン指定を完全に消して Google にお任せする）
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Googleから今使えるモデルのリストを直接取得して、1.5-flashを探すぜ
-def get_model():
-    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    for m in models:
-        # 1.5-flash が含まれていて、かつ制限の厳しい 2.5 じゃないものを探す
-        if '1.5-flash' in m and '2.5' not in m:
-            return m
-    return "models/gemini-1.5-flash" # 見つからない時のバックアップ
+# 2. モデル名を「models/」なしのこれにする
+target_model = "gemini-1.5-flash"
+
+# 3. モデルの準備
+model = genai.GenerativeModel(model_name=target_model, system_instruction=instruction)
+
 
 # v1betaを使うなら、この「models/」なしの書き方が今の正解だ！
 target_model = "gemini-1.5-flash"
