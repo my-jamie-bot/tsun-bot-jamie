@@ -26,10 +26,20 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# これがGoogle API v1betaで一番安定して動く指定方法だぜ
-target_model = "models/gemini-1.5-flash-latest"
+def get_available_model():
+    # Googleから「今使えるモデル名」を直接リストで取得する
+    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    
+    # そのリストの中に '1.5-flash' が含まれていたら、その「正式名称」を返す
+    for m in models:
+        if '1.5-flash' in m:
+            return m
+            
+    # もし見つからなければ、リストの1番目を使う（404を絶対に回避する）
+    return models[0] if models else "models/gemini-1.5-flash"
 
-
+# これで「404」も「429」も出ないはずだぜ！
+target_model = get_available_model()
 
 
 # --- 3. ジェミーの性格設定 ---
