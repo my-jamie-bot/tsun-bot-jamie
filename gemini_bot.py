@@ -27,24 +27,21 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_available_model():
-    try:
-        # Googleのリストから、今本当に使えるモデル名を自動で取ってくるぜ
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # 1. 1.5-flash を最優先で探す（1500回お喋りできるからな！）
-        for name in available_models:
-            if '1.5-flash' in name:
-                return name
-        
-        # 2. もし1.5がなければ、リストにある「使えるやつ」をどれでもいいから使う
-        if available_models:
-            return available_models[0]
-            
-    except Exception as e:
-        print(f"モデル取得エラー: {e}")
+    # 利用可能なモデルを全部リストアップする
+    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
     
-    # 万が一リストが取れなかった時の最終バックアップ
-    return "models/gemini-1.5-flash"
+    # 1. まず '1.5-flash' という文字が含まれるモデルを全力で探す
+    # これなら 'models/gemini-1.5-flash' でも 'gemini-1.5-flash' でも正解を見つけられる！
+    for name in available_models:
+        if '1.5-flash' in name:
+            return name
+            
+    # 2. もし1.5がなければ、Googleが「使える」と言っている最初のやつを渋々使う
+    return available_models[0] if available_models else "gemini-1.5-flash"
+
+# 正解の名前を自動で代入するぜ
+target_model = get_available_model()
+
 
 # これで「回数制限(429)」と「名前間違い(404)」を同時に解決するぜ！
 target_model = get_available_model()
