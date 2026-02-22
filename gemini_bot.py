@@ -27,7 +27,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # これがGoogle API v1betaで一番安定して動く指定方法だぜ
-target_model = "gemini-1.5-flash-latest"
+target_model = "models/gemini-1.5-flash-latest"
 
 
 
