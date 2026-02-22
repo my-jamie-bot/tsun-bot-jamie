@@ -26,8 +26,9 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# 関数は全部消してOK！これだけでジェミーを1.5に固定するぜ！
-target_model = "models/gemini-1.5-flash"
+# 'models/' を取って、'-latest' をつける。これが v1beta で 1.5-flash を呼ぶ正解だぜ！
+target_model = "gemini-1.5-flash-latest"
+
 
 
 
