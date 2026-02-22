@@ -27,19 +27,28 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_available_model():
-    # Googleから「今使えるモデル名」を直接リストで取得する
-    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    
-    # そのリストの中に '1.5-flash' が含まれていたら、その「正式名称」を返す
-    for m in models:
-        if '1.5-flash' in m:
-            return m
+    try:
+        # Googleのリストから、今本当に使えるモデル名を自動で取ってくるぜ
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        # 1. 1.5-flash を最優先で探す（1500回お喋りできるからな！）
+        for name in available_models:
+            if '1.5-flash' in name:
+                return name
+        
+        # 2. もし1.5がなければ、リストにある「使えるやつ」をどれでもいいから使う
+        if available_models:
+            return available_models[0]
             
-    # もし見つからなければ、リストの1番目を使う（404を絶対に回避する）
-    return models[0] if models else "models/gemini-1.5-flash"
+    except Exception as e:
+        print(f"モデル取得エラー: {e}")
+    
+    # 万が一リストが取れなかった時の最終バックアップ
+    return "models/gemini-1.5-flash"
 
-# これで「404」も「429」も出ないはずだぜ！
+# これで「回数制限(429)」と「名前間違い(404)」を同時に解決するぜ！
 target_model = get_available_model()
+
 
 
 # --- 3. ジェミーの性格設定 ---
