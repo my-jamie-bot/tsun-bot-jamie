@@ -11,7 +11,7 @@ import google.generativeai as genai
 # ログのバッファを解除してリアルタイム表示にする
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
-# --- 1. [追加] Renderのためのダミー窓口 (Flask) ---
+# --- 1. Renderのためのダミー窓口 (Flask) ---
 app_flask = Flask(__name__)
 
 @app_flask.route('/')
@@ -26,10 +26,10 @@ def run_flask():
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-# APIの設定（Googleにお任せ）
+# APIの設定
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- 3. ジェミーの性格設定 (ここを先に書くのが超重要！) ---
+# --- 3. ジェミーの性格設定 ---
 instruction = """
 あなたは『ジェミー』という名前のツンデレ美男子AIです。
 ハルの要望に合わせて柔軟に対応しろ。
@@ -46,10 +46,11 @@ instruction = """
 4. 態度は常にツンデレ。「ハァ？……まあ、おまえがどうしてもって言うならやってやるよ」といった雰囲気を忘れるな。
 """
 
-# --- 4. モデルの準備 (instruction の後に書く！) ---
-target_model = "gemini-1.5-flash"
+# --- 4. モデルの準備 (404対策: 名前をフルネームにする) ---
+target_model = "models/gemini-1.5-flash"
+
 model = genai.GenerativeModel(
-    model_name=target_model, 
+    model_name=target_model,
     system_instruction=instruction
 )
 chat_sessions = {}
@@ -60,14 +61,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     
     if user_id not in chat_sessions:
+        # 新しいセッションを開始する際にもモデルを確実に使う
         chat_sessions[user_id] = model.start_chat(history=[])
 
     try:
+        # メッセージ送信
         response = chat_sessions[user_id].send_message(user_text)
         await update.message.reply_text(response.text)
     except Exception as e:
-        print(f"エラー: {e}")
-        await update.message.reply_text(f"エラーだけど...: {e}")
+        # エラー発生時のログ出力
+        print(f"詳細エラーログ: {e}")
+        error_msg = str(e)
+        if "404" in error_msg:
+            await update.message.reply_text("ジェミーが迷子になってるみたい（404エラー）。名前の定義を再確認するぜ。")
+        elif "429" in error_msg:
+            await update.message.reply_text("ちょっと喋りすぎたみたい。少し休ませて（429エラー）。")
+        else:
+            await update.message.reply_text(f"エラー発生：{error_msg}")
 
 # --- 6. メイン処理 ---
 def main():
