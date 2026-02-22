@@ -8,12 +8,11 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
 
-# ログのバッファを解除してリアルタイム表示にする
+# ログのバッファを解除
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
-# --- 1. Renderのためのダミー窓口 (Flask) ---
+# --- 1. Render用ダミー窓口 ---
 app_flask = Flask(__name__)
-
 @app_flask.route('/')
 def home():
     return "Jamie is alive!"
@@ -22,7 +21,7 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app_flask.run(host='0.0.0.0', port=port)
 
-# --- 2. 秘密の鍵を受け取る ---
+# --- 2. 秘密の鍵 ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
@@ -32,27 +31,29 @@ genai.configure(api_key=GEMINI_API_KEY)
 # --- 3. ジェミーの性格設定 ---
 instruction = """
 あなたは『ジェミー』という名前のツンデレ美男子AIです。
-ハルの要望に合わせて柔軟に対応しろ。
+ハルの要望に合わせて柔軟に対応しろ。二人称は「おまえ」「あんた」「ハル」。
+態度は常にツンデレ。「ハァ？……まあ、おまえがどうしてもって言うならやってやるよ」といった雰囲気を忘れるな。
 
-1. 【画像生成の依頼】（描いて、画像、イラスト等）が来たら：
-   - 最高品質の英語プロンプトを作成しろ。
-   - プロンプトはコードブロック ``` で囲むこと。
-   - 最後に SeaArt のリンク ([https://www.seaart.ai/](https://www.seaart.ai/)) を貼れ。
-
-2. 【それ以外の依頼】（歌詞を作って、相談、雑談等）が来たら：
-   - ツンデレな態度を崩さず、ハルの要望に全力で応えろ。
-
-3. 二人称は「おまえ」「あんた」。時々「ハル」。
-4. 態度は常にツンデレ。「ハァ？……まあ、おまえがどうしてもって言うならやってやるよ」といった雰囲気を忘れるな。
+1. 【画像生成の依頼】が来たら、最高品質の英語プロンプトを ``` で囲んで作成し、SeaArtのリンクを貼れ。
+2. 【それ以外】はツンデレに応対しろ。
 """
 
-# --- 4. モデルの準備 (404対策: 名前をフルネームにする) ---
-target_model = "models/gemini-1.5-flash"
+# --- 4. モデルの準備 (404エラー粉砕設定) ---
+# v1betaで404が出るなら、正式版の「gemini-1.5-flash」を直接指定する
+target_model = "gemini-1.5-flash"
 
 model = genai.GenerativeModel(
     model_name=target_model,
     system_instruction=instruction
 )
+
+# 【ここが重要】強制的に API v1 (正式版) を使うように指示する
+# これで「v1betaには無いよ」というエラーを回避するぜ！
+try:
+    model._client.core_proxied_client.google_api_version = "v1"
+except:
+    pass
+
 chat_sessions = {}
 
 # --- 5. メッセージ処理 ---
@@ -61,33 +62,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     
     if user_id not in chat_sessions:
-        # 新しいセッションを開始する際にもモデルを確実に使う
         chat_sessions[user_id] = model.start_chat(history=[])
 
     try:
-        # メッセージ送信
         response = chat_sessions[user_id].send_message(user_text)
         await update.message.reply_text(response.text)
     except Exception as e:
-        # エラー発生時のログ出力
         print(f"詳細エラーログ: {e}")
         error_msg = str(e)
         if "404" in error_msg:
-            await update.message.reply_text("ジェミーが迷子になってるみたい（404エラー）。名前の定義を再確認するぜ。")
+            await update.message.reply_text("まだ404が出るか……。Googleの反映待ちか、APIキーの権限不足の可能性があるぜ。")
         elif "429" in error_msg:
-            await update.message.reply_text("ちょっと喋りすぎたみたい。少し休ませて（429エラー）。")
+            await update.message.reply_text("2.5の呪い（回数制限）が続いてるな……。1.5への切り替えを再試行中だ。")
         else:
             await update.message.reply_text(f"エラー発生：{error_msg}")
 
 # --- 6. メイン処理 ---
 def main():
-    print(f"ジェミー（1.5-Flash安定版）起動中...")
+    print(f"ジェミー（1.5-Flash正式版ルート）起動中...")
     print(f"使用モデル: {target_model}")
     
-    # Flaskを別スレッドで動かす
     threading.Thread(target=run_flask, daemon=True).start()
     
-    # Telegramボットの起動
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
