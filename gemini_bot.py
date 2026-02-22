@@ -26,17 +26,9 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_available_model():
-    # 2.5-flashを避けて、安定した1.5-flashを優先的に探すぜ！
-    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    for name in available_models:
-        if 'gemini-1.5-flash' in name:
-            # ここで 'models/gemini-1.5-flash' といった正式名称が手に入るぜ
-            return name
-    return available_models[0] if available_models else "gemini-1.5-flash"
+# 自動検索はやめて、名前を直接指定する（models/ をつけるのがコツだぜ）
+target_model = "models/gemini-1.5-flash"
 
-# これで「回数制限」と「404エラー」の両方を一気に解決だ！
-target_model = get_available_model()
 
 
 # --- 3. ジェミーの性格設定 ---
