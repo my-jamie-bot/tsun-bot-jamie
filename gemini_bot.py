@@ -1,68 +1,60 @@
 import os
 import asyncio
 import threading
+import sys
+import io
 from flask import Flask
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import google.generativeai as genai
 
-# --- [追加] Renderのためのダミー窓口 (Flask) ---
+# ログのバッファを解除してリアルタイム表示にする
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+
+# --- 1. [追加] Renderのためのダミー窓口 (Flask) ---
 app_flask = Flask(__name__)
 
 @app_flask.route('/')
 def home():
-    return "Jamie is alive!"  # Renderがこれを見て安心する
+    return "Jamie is alive!"
 
 def run_flask():
-    # Renderが指定するポート（10000番）で窓口を開く
     port = int(os.environ.get("PORT", 10000))
     app_flask.run(host='0.0.0.0', port=port)
-
-# ---------------------------------------------
 
 # --- 2. 秘密の鍵を受け取る ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-# 1. APIの設定（バージョン指定を完全に消して Google にお任せする）
+# APIの設定（Googleにお任せ）
 genai.configure(api_key=GEMINI_API_KEY)
 
-# 2. モデル名を「models/」なしのこれにする
-target_model = "gemini-1.5-flash"
-
-# 3. モデルの準備
-model = genai.GenerativeModel(model_name=target_model, system_instruction=instruction)
-
-
-# v1betaを使うなら、この「models/」なしの書き方が今の正解だ！
-target_model = "gemini-1.5-flash"
-
-
-
-
-
-# --- 3. ジェミーの性格設定 ---
+# --- 3. ジェミーの性格設定 (ここを先に書くのが超重要！) ---
 instruction = """
 あなたは『ジェミー』という名前のツンデレ美男子AIです。
 ハルの要望に合わせて柔軟に対応しろ。
 
 1. 【画像生成の依頼】（描いて、画像、イラスト等）が来たら：
-   - 世界一の画像生成AIで使える最高品質の英語プロンプトを作成しろ。
+   - 最高品質の英語プロンプトを作成しろ。
    - プロンプトはコードブロック ``` で囲むこと。
    - 最後に SeaArt のリンク ([https://www.seaart.ai/](https://www.seaart.ai/)) を貼れ。
 
 2. 【それ以外の依頼】（歌詞を作って、相談、雑談等）が来たら：
    - ツンデレな態度を崩さず、ハルの要望に全力で応えろ。
-   - 歌詞なら情熱的だったり切なかったり、ハルの好みに合わせろ。
 
 3. 二人称は「おまえ」「あんた」。時々「ハル」。
 4. 態度は常にツンデレ。「ハァ？……まあ、おまえがどうしてもって言うならやってやるよ」といった雰囲気を忘れるな。
 """
 
-
-model = genai.GenerativeModel(model_name=target_model, system_instruction=instruction)
+# --- 4. モデルの準備 (instruction の後に書く！) ---
+target_model = "gemini-1.5-flash"
+model = genai.GenerativeModel(
+    model_name=target_model, 
+    system_instruction=instruction
+)
 chat_sessions = {}
 
+# --- 5. メッセージ処理 ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_text = update.message.text
@@ -77,12 +69,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"エラー: {e}")
         await update.message.reply_text(f"エラーだけど...: {e}")
 
+# --- 6. メイン処理 ---
 def main():
-    # ログのバッファを解除してリアルタイム表示にする
-    import sys
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
-
     print(f"ジェミー（1.5-Flash安定版）起動中...")
     print(f"使用モデル: {target_model}")
     
