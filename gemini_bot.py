@@ -40,7 +40,9 @@ instruction = """
 
 # --- 4. モデルの準備 (404エラー粉砕設定) ---
 # v1betaで404が出るなら、正式版の「gemini-1.5-flash」を直接指定する
-target_model = "gemini-1.5-flash"
+# '8b' というのは 1.5-flash の別名だ。これなら 404 を回避できる可能性が極めて高い！
+target_model = "gemini-1.5-flash-8b"
+
 
 model = genai.GenerativeModel(
     model_name=target_model,
